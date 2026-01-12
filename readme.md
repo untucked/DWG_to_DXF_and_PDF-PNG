@@ -50,16 +50,16 @@ If you plan to export DXF → PDF via Inkscape or LibreCAD, install the tool and
 
 ---
 
-## Configuration (config.yaml)
+## Configuration (config.ini)
 
-External tool paths are configured via `config.yaml` in the project root.
+External tool paths are configured via `config.ini` in the project root.
 
 Example:
 
-```yaml
+```config.ini
 paths:
-  inkscape_exe: "C:/Users/you/scoop/shims/inkscape.exe"
-  librecad_exe: "C:/Users/you/scoop/apps/librecad/current/LibreCAD.exe"
+  INKSCAPE_EXE=C:/Users/you/scoop/shims/inkscape.exe
+  LIBRECAD_EXE=C:/Users/you/scoop/apps/librecad/current/LibreCAD.exe
 
 ---
 
