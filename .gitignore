@@ -94,3 +94,5 @@ celerybeat-schedule
 
 # virtualenv
 venv/
+
+config.yaml
