@@ -96,3 +96,4 @@ celerybeat-schedule
 venv/
 
 config.yaml
+config.ini

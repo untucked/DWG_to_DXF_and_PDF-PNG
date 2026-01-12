@@ -17,6 +17,7 @@ The tool is designed for **batch, recursive** conversion of nested folders, and 
 
 - `dwg_to_dxf_and_pdf.py` — CLI entrypoint (DWG→DXF and DXF→PDF/PNG)
 - `support.py` — conversion helpers and external-tool wrappers
+- `config.ini` — local configuration (paths + optional default input dirs)
 
 ---
 

@@ -36,8 +36,8 @@ if __name__ == "__main__":
     if args.directory:
         input_directory = args.directory
     else:
-        # input_directory = r'./dwg_files'
-        input_directory = r'C:\Users\bradley.eylander\OneDrive - LMI Consulting\Documents\Test'
+        # input_directory  = support.DWG_FILES
+        input_directory = support.DWG_FILES_TEST
         # defaults when running without CLI flags
         args.to_pdf = True
         args.to_png = True

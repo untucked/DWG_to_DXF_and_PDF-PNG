@@ -19,28 +19,26 @@ from aspose.cad.imageoptions import (
     PngOptions,
     JpegOptions,
 )
-import yaml
+from dotenv import load_dotenv
 from pathlib import Path
-
-def load_config(config_path: str | Path = "config.yaml") -> dict:
-    config_path = Path(config_path)
-    if not config_path.exists():
-        return {}
-    with open(config_path, "r", encoding="utf-8") as f:
-        return yaml.safe_load(f) or {}
+import os
+from configparser import ConfigParser
 
 
-_CONFIG = load_config()
 
-LIBRECAD_EXE = (
-    _CONFIG.get("paths", {}).get("librecad_exe")
-    or r"C:\Program Files\LibreCAD\LibreCAD.exe"
-)
+def load_ini(path: str | Path = "config.ini") -> ConfigParser:
+    cfg = ConfigParser()
+    cfg.read(path)
+    return cfg
 
-INKSCAPE_EXE = (
-    _CONFIG.get("paths", {}).get("inkscape_exe")
-    or "inkscape"  # allow PATH-based resolution
-)
+
+_cfg = load_ini()
+
+INKSCAPE_EXE = _cfg.get("paths", "INKSCAPE_EXE", fallback="inkscape")
+LIBRECAD_EXE = _cfg.get("paths", "LIBRECAD_EXE", fallback=None)
+
+DWG_FILES = _cfg.get("input_dirs", "DWG_FILES", fallback=None)
+DWG_FILES_TEST = _cfg.get("input_dirs", "DWG_FILES_TEST", fallback=None)
 
 def validate_external_tools():
     for name, exe in {
