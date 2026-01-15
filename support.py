@@ -1,10 +1,8 @@
 # support.py
 import aspose.cad as cad
-from aspose.cad import Color  # Correct Color import
 import time
 from aspose.cad import Image
 import ezdxf
-import os
 from tqdm import tqdm  # Progress bar
 import subprocess
 import shlex
@@ -18,9 +16,6 @@ from aspose.cad.imageoptions import (
     PngOptions,
     JpegOptions,
 )
-from dotenv import load_dotenv
-from pathlib import Path
-import os
 from configparser import ConfigParser
 from ezdxf.addons.drawing import RenderContext, Frontend
 from ezdxf.addons.drawing.matplotlib import MatplotlibBackend
@@ -30,7 +25,6 @@ def load_ini(path: str | Path = "config.ini") -> ConfigParser:
     cfg = ConfigParser()
     cfg.read(path)
     return cfg
-
 
 _cfg = load_ini()
 
@@ -74,18 +68,13 @@ def _save_as_dxf(dwg_path: Path, dxf_path: Path, dxf_version: str = "ACAD2013"):
     return time.time() - start
 
 # --- keep your imports ---
-
 def dxf_options(dwg_path, dwg_file, dxf_path, dxf_file,
                 start_time, total_files, idx):
-
-
     options = DxfOptions()
     options.version = cad.imageoptions.DxfOutputVersion.R12  # stays as you like
-
     start = time.time()
     with Image.load(dwg_path) as image:
         image.save(dxf_path, options)
-
     time_taken = time.time() - start_time
     eta = time_taken * (total_files - (idx + 1))
     print(f"\n{dwg_file} converted to {dxf_file} ({time_taken:.2f} sec)")
@@ -117,16 +106,13 @@ def convert_dwg_to_dxf(fdir, layers_only=False, skip_existing=True):
     root = Path(fdir)
     out_dir = root / "DXF_Converted"
     out_dir.mkdir(parents=True, exist_ok=True)
-
     # Recurse (handles nested drops)
     dwg_files = sorted(root.rglob("*.dwg"))
     print(f"Found {len(dwg_files)} DWG files for conversion (recursive).")
-
     for i, dwg_path in enumerate(tqdm(dwg_files, desc="Converting DWG to DXF", unit="file")):
         rel = dwg_path.relative_to(root)
         dxf_path = out_dir / rel.with_suffix(".dxf")
         dxf_path.parent.mkdir(parents=True, exist_ok=True)
-
         if not layers_only:
             if skip_existing and dxf_path.exists():
                 print(f"[skip] {dxf_path.name} (already exists)")
@@ -146,7 +132,6 @@ def convert_dwg_to_dxf(fdir, layers_only=False, skip_existing=True):
                 print(f"\nError getting layers from DXF file {dxf_path.name}: {e}")
         else:
             print(f"[miss] DXF not found for {dwg_path.name}")
-
     print("Batch conversion completed successfully!")
 
 # -------------- DXF -> PDF (LibreCAD) --------------
@@ -158,10 +143,8 @@ def dxf_to_pdf_librecad(dxf_root: str, pdf_out: str):
     dxf_root_p = Path(dxf_root)
     pdf_out_p = Path(pdf_out)
     pdf_out_p.mkdir(parents=True, exist_ok=True)
-
     dxfs = sorted(dxf_root_p.rglob("*.dxf"))
     print(f"Found {len(dxfs)} DXF files for PDF export (LibreCAD).")
-
     for dxf in tqdm(dxfs, desc="DXF -> PDF (LibreCAD)", unit="file"):
         # Build a unique name using subpath pieces (avoid collisions)
         rel = dxf.relative_to(dxf_root_p)
@@ -170,7 +153,6 @@ def dxf_to_pdf_librecad(dxf_root: str, pdf_out: str):
         if out_pdf.exists():
             # Skip if already converted (idempotent runs)
             continue
-
         # Many builds write output into the CWD with input basename.
         # We'll set cwd to the pdf_out folder and then rename if needed.
         cmd = f'"{LIBRECAD_EXE}" dxf2pdf "{dxf}"'
@@ -179,7 +161,6 @@ def dxf_to_pdf_librecad(dxf_root: str, pdf_out: str):
         except subprocess.CalledProcessError as e:
             print(f"!! LibreCAD failed on {dxf.name}: {e}")
             continue
-
         # If LibreCAD created <basename>.pdf, move/rename to our unique target
         default_pdf = pdf_out_p / (dxf.stem + ".pdf")
         if default_pdf.exists() and default_pdf != out_pdf:
@@ -193,26 +174,20 @@ def dxf_to_pdf_librecad(dxf_root: str, pdf_out: str):
                     i += 1
                     cand = pdf_out_p / f"{stem_unique} ({i}).pdf"
                 default_pdf.rename(cand)
-
-
 # Quick manual test (PowerShell)
-
 def dxf_to_pdf_inkscape_simple(dxf_root: str, pdf_out: str,
                         test_run=False):
     dxf_root_p = Path(dxf_root)
     pdf_out_p  = Path(pdf_out)
     pdf_out_p.mkdir(parents=True, exist_ok=True)
-
     dxfs = sorted(dxf_root_p.rglob("*.dxf"))
     print(f"Found {len(dxfs)} DXF files for PDF export (Inkscape).")
-
     for dxf in tqdm(dxfs, desc="DXF -> PDF (Inkscape)", unit="file"):
         rel = dxf.relative_to(dxf_root_p)
         stem_unique = "_".join(rel.with_suffix("").parts)  # avoid name collisions
         target_pdf = pdf_out_p / f"{stem_unique}.pdf"
         if target_pdf.exists():
             continue
-
         args = [INKSCAPE_EXE, str(dxf), "--export-type=pdf",
                 f"--export-filename={str(target_pdf)}"]
         r = _run2(args)

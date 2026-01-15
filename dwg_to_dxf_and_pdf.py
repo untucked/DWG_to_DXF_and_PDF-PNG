@@ -1,10 +1,5 @@
 # dwg_to_dxf_and_pdf.py
-import aspose.cad as cad
-from aspose.cad.imageoptions import DxfOptions, CadRasterizationOptions
-from aspose.cad import Color  # Correct Color import
 import os
-import time
-from tqdm import tqdm  # Progress bar
 import argparse  # For command-line arguments
 from pathlib import Path
 
