@@ -583,7 +583,7 @@ def dxf_to_png_ezdxf(
 if __name__ == "__main__":
     dxf_folder = './dwg_files/DXF_Converted'
     dxf_file = './dwg_files/DXF_Converted/civil_example-imperial.dxf'
-    print_dxf_file(dxf_file, layers_only=True)
+    print_dxf_file(dxf_file)
 
     dxf_to_pdf_aspose(
         dxf_root=dxf_folder,
