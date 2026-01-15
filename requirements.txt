@@ -2,3 +2,5 @@ ezdxf
 tqdm
 aspose-cad
 pyyaml
+ezdxf 
+matplotlib

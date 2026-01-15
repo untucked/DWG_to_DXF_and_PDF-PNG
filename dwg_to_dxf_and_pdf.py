@@ -36,14 +36,15 @@ if __name__ == "__main__":
     if args.directory:
         input_directory = args.directory
     else:
-        # input_directory  = support.DWG_FILES
-        input_directory = support.DWG_FILES_TEST
+        input_directory  = support.DWG_FILES
+        # input_directory = support.DWG_FILES_TEST
         # defaults when running without CLI flags
         args.to_pdf = True
         args.to_png = True
-        args.inkscape = True
+        args.inkscape = False
+        args.ezdxf = False
         args.aspose = True
-        args.overwrite = True
+        args.overwrite = False
         args.test_run = False
 
     if not os.path.isdir(input_directory):
@@ -59,11 +60,11 @@ if __name__ == "__main__":
     pdf_out  = str(Path(input_directory) / "PDF_From_DXF")
     pdf_out_inkscape  = str(Path(input_directory) / "PDF_From_DXF_inkscape")
     img_out  = str(Path(input_directory) / "IMG_From_DXF")
+    img_out_inkscape  = str(Path(input_directory) / "IMG_From_DXF_inkscape")
     # If no flags are provided, default to PDF (your current behavior)
     if not (args.to_pdf or args.to_png ):        
         args.to_pdf = True
         args.to_png = True
-
         
     # support.dxf_to_pdf_librecad(dxf_root, pdf_out)
     # Auto-fit full geometry, add 10px margin, and “zoom out” a bit via 150 DPI
@@ -75,8 +76,8 @@ if __name__ == "__main__":
                 area="drawing",   # currently unused but OK
                 margin_px=10,
                 dpi=150,
-                overwrite=True,
-                test_run=False,   # or True if you want to test only 1 file
+                overwrite=args.overwrite,
+                test_run=args.test_run,   # or True if you want to test only 1 file
             )
         if args.aspose :
             support.dxf_to_pdf_aspose(
@@ -84,17 +85,36 @@ if __name__ == "__main__":
                 pdf_out,
                 page_width=2200.0,
                 page_height=1700.0,  # 2200 / 1700 ≈ 1.294
-                overwrite=True,
-                test_run=False,   # or True if you want to test only 1 file
+                overwrite=args.overwrite,
+                test_run=args.test_run,   # or True if you want to test only 1 file
             )
     if args.to_png:
-        support.dxf_to_image_aspose(
-            dxf_root,
-            img_out,
-            fmt="png",
-            page_width=2200.0,
-            page_height=1700.0,
-            overwrite=True,
-            test_run=False,
-            add_filename="_png",
-        )
+        if args.aspose :
+            support.dxf_to_image_aspose(
+                dxf_root,
+                img_out,
+                fmt="png",
+                page_width=2200.0,
+                page_height=1700.0,
+                overwrite=args.overwrite,
+                test_run=args.test_run
+            )
+        if args.inkscape:
+            support.dxf_to_png_inkscape(
+                dxf_root,
+                img_out_inkscape,
+                margin_px=25,
+                dpi=200,
+                overwrite=args.overwrite,
+                test_run=args.test_run,
+                timeout_s=60,
+            )
+        if args.ezdxf:
+            # Use the new fast function
+            support.dxf_to_png_ezdxf(
+                dxf_root,
+                img_out + "_ezdxf", # Output to a different folder to compare
+                dpi=200,
+                overwrite=args.overwrite,
+                test_run=args.test_run,
+            )

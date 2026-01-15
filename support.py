@@ -9,7 +9,6 @@ from tqdm import tqdm  # Progress bar
 import subprocess
 import shlex
 from pathlib import Path
-from tqdm import tqdm
 # Context manager = no file locks
 from aspose.cad import Image
 from aspose.cad.imageoptions import (
@@ -23,8 +22,9 @@ from dotenv import load_dotenv
 from pathlib import Path
 import os
 from configparser import ConfigParser
-
-
+from ezdxf.addons.drawing import RenderContext, Frontend
+from ezdxf.addons.drawing.matplotlib import MatplotlibBackend
+import matplotlib.pyplot as plt
 
 def load_ini(path: str | Path = "config.ini") -> ConfigParser:
     cfg = ConfigParser()
@@ -130,6 +130,7 @@ def convert_dwg_to_dxf(fdir, layers_only=False, skip_existing=True):
         if not layers_only:
             if skip_existing and dxf_path.exists():
                 print(f"[skip] {dxf_path.name} (already exists)")
+                continue
             else:
                 try:
                     dxf_options(str(dwg_path), dwg_path.name, str(dxf_path), dxf_path.name,
@@ -474,6 +475,142 @@ def dxf_to_image_aspose(
         if test_run:
             break
 
+from pathlib import Path
+from tqdm import tqdm
+import subprocess
+
+def dxf_to_png_inkscape(
+    dxf_root: str,
+    img_out: str,
+    *,
+    dpi: int = 200,
+    margin_px: int = 10,
+    overwrite: bool = False,
+    test_run: bool = False,
+    add_filename: str | None = None,
+    timeout_s: int = 60,  # <-- prevents “hang forever”
+):
+    """
+    Convert DXF -> PNG using Inkscape (single-pass).
+
+    Notes:
+    - Uses --export-area-drawing to capture the drawing extents.
+    - Adds optional --export-margin.
+    - Uses a timeout so problematic DXFs don’t stall the whole batch.
+    """
+    inkscape = INKSCAPE_EXE if "INKSCAPE_EXE" in globals() else "inkscape"
+
+    dxf_root_p = Path(dxf_root)
+    img_out_p  = Path(img_out)
+    img_out_p.mkdir(parents=True, exist_ok=True)
+
+    dxfs = sorted(dxf_root_p.rglob("*.dxf"))
+    print(f"Found {len(dxfs)} DXF files for PNG export (Inkscape single-pass).")
+
+    for idx, dxf in enumerate(tqdm(dxfs, desc="DXF -> PNG (Inkscape)", unit="file")):
+        rel = dxf.relative_to(dxf_root_p)
+        stem_unique = "_".join(rel.with_suffix("").parts)
+        if add_filename:
+            stem_unique = f"{stem_unique}{add_filename}"
+
+        target_png = img_out_p / f"{stem_unique}.png"
+        if target_png.exists() and not overwrite:
+            continue
+
+        args = [
+            inkscape,
+            str(dxf),
+            "--export-type=png",
+            f"--export-filename={str(target_png)}",
+            "--export-area-drawing",
+            f"--export-dpi={int(dpi)}",
+        ]
+
+        if margin_px and margin_px > 0:
+            args.append(f"--export-margin={int(margin_px)}")
+
+        try:
+            r = subprocess.run(
+                args,
+                capture_output=True,
+                text=True,
+                timeout=timeout_s,
+            )
+        except subprocess.TimeoutExpired:
+            print(f"!! TIMEOUT ({timeout_s}s): {dxf.name} (skipping)")
+            continue
+
+        if r.returncode != 0 or not target_png.exists():
+            print(f"!! Inkscape DXF->PNG failed on {dxf.name} (code={r.returncode})")
+            if r.stderr:
+                print(f"STDERR:\n{r.stderr}")
+            if r.stdout:
+                print(f"STDOUT:\n{r.stdout}")
+            # Make sure we don't leave a corrupt file behind
+            try:
+                target_png.unlink(missing_ok=True)
+            except Exception:
+                pass
+            continue
+
+        if test_run:
+            break
+
+
+
+
+def dxf_to_png_ezdxf(
+    dxf_root: str,
+    img_out: str,
+    *,
+    dpi: int = 200,
+    overwrite: bool = False,
+    test_run: bool = False,
+):
+    """
+    Convert DXF -> PNG using ezdxf + matplotlib (Very Fast).
+    """
+    dxf_root_p = Path(dxf_root)
+    img_out_p = Path(img_out)
+    img_out_p.mkdir(parents=True, exist_ok=True)
+
+    dxfs = sorted(dxf_root_p.rglob("*.dxf"))
+    print(f"Found {len(dxfs)} DXF files for Fast PNG export (ezdxf).")
+
+    for dxf in tqdm(dxfs, desc="DXF -> PNG (ezdxf)", unit="file"):
+        rel = dxf.relative_to(dxf_root_p)
+        stem_unique = "_".join(rel.with_suffix("").parts)
+        target_png = img_out_p / f"{stem_unique}.png"
+
+        if target_png.exists() and not overwrite:
+            continue
+
+        try:
+            # 1. Load the DXF
+            doc = ezdxf.readfile(dxf)
+            msp = doc.modelspace()
+
+            # 2. Setup the Matplotlib figure
+            fig = plt.figure(frameon=True)
+            fig.patch.set_facecolor("white")
+            ax = fig.add_axes([0, 0, 1, 1])
+            ax.set_facecolor("white")
+            ax.set_axis_off()
+            # 3. Render the DXF to the Matplotlib backend
+            ctx = RenderContext(doc)
+            out = MatplotlibBackend(ax)
+            Frontend(ctx, out).draw_layout(msp, finalize=True)
+
+            # 4. Save with tight bounding box to prevent clipping/extra whitespace
+            fig.savefig(target_png, dpi=dpi, bbox_inches='tight', pad_inches=0.1)
+            plt.close(fig)
+
+        except Exception as e:
+            print(f"!! Failed to convert {dxf.name}: {e}")
+            continue
+
+        if test_run:
+            break
 
 if __name__ == "__main__":
     dxf_folder = './dwg_files/DXF_Converted'

@@ -181,33 +181,6 @@ If you want, add a preprocessing step:
 
 ---
 
-## Troubleshooting
-
-### “Import ... could not be resolved from source” (Pylance)
-Aspose.CAD has incomplete type stubs. Pylance may show import warnings even when runtime imports work.
-
-If it bothers you, use guarded imports for some Aspose options:
-
-```python
-try:
-    from aspose.cad.imageoptions import PngOptions, JpegOptions
-except Exception:
-    PngOptions = None
-    JpegOptions = None
-```
-
-### Inkscape failures
-Run a single export command manually to see stdout/stderr:
-
-```powershell
-& "C:\Program Files\Inkscape\bin\inkscape.exe" "C:\path\to\file.dxf" --export-type=pdf --export-filename="C:\temp\out.pdf"
-```
-
-### Aspose evaluation / licensing issues
-If you see evaluation behavior, consult Aspose licensing and apply a license if required.
-
----
-
 ## Git helpers
 
 ### Clone
