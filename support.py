@@ -19,6 +19,7 @@ from aspose.cad.imageoptions import (
 from configparser import ConfigParser
 from ezdxf.addons.drawing import RenderContext, Frontend
 from ezdxf.addons.drawing.matplotlib import MatplotlibBackend
+from ezdxf.addons.drawing.properties import LayoutProperties
 import matplotlib.pyplot as plt
 
 def load_ini(path: str | Path = "config.ini") -> ConfigParser:
@@ -532,8 +533,6 @@ def dxf_to_png_inkscape(
             break
 
 
-
-
 def dxf_to_png_ezdxf(
     dxf_root: str,
     img_out: str,
@@ -542,50 +541,44 @@ def dxf_to_png_ezdxf(
     overwrite: bool = False,
     test_run: bool = False,
 ):
-    """
-    Convert DXF -> PNG using ezdxf + matplotlib (Very Fast).
-    """
     dxf_root_p = Path(dxf_root)
     img_out_p = Path(img_out)
     img_out_p.mkdir(parents=True, exist_ok=True)
-
-    dxfs = sorted(dxf_root_p.rglob("*.dxf"))
-    print(f"Found {len(dxfs)} DXF files for Fast PNG export (ezdxf).")
-
-    for dxf in tqdm(dxfs, desc="DXF -> PNG (ezdxf)", unit="file"):
-        rel = dxf.relative_to(dxf_root_p)
-        stem_unique = "_".join(rel.with_suffix("").parts)
-        target_png = img_out_p / f"{stem_unique}.png"
-
+    dxfs = sorted(dxf_root_p.rglob("*.dxf"))    
+    for dxf in tqdm(dxfs, desc="DXF -> PNG (ezdxf Fast)", unit="file"):
+        target_png = img_out_p / f"{'_'.join(dxf.relative_to(dxf_root_p).with_suffix('').parts)}.png"
         if target_png.exists() and not overwrite:
             continue
-
         try:
-            # 1. Load the DXF
             doc = ezdxf.readfile(dxf)
             msp = doc.modelspace()
-
-            # 2. Setup the Matplotlib figure
+            # --- FIX 1: Missing Layers ---
+            # Force all layers to be visible and unfrozen
+            for layer in doc.layers:
+                layer.on()
+                layer.thaw()
+            # --- FIX 2: Color Mapping & Background ---
+            # LayoutProperties tells ezdxf to swap 'Color 7' to black 
+            # because the background is white.
+            ctx = RenderContext(doc)
+            layout_props = LayoutProperties.from_layout(msp)
+            layout_props.set_colors(bg="#FFFFFF") # Sets logical white background
             fig = plt.figure(frameon=True)
             fig.patch.set_facecolor("white")
             ax = fig.add_axes([0, 0, 1, 1])
             ax.set_facecolor("white")
             ax.set_axis_off()
-            # 3. Render the DXF to the Matplotlib backend
-            ctx = RenderContext(doc)
-            out = MatplotlibBackend(ax)
-            Frontend(ctx, out).draw_layout(msp, finalize=True)
-
-            # 4. Save with tight bounding box to prevent clipping/extra whitespace
-            fig.savefig(target_png, dpi=dpi, bbox_inches='tight', pad_inches=0.1)
+            out = MatplotlibBackend(ax)            
+            # finalize=True is critical for bounding box calculation
+            Frontend(ctx, out).draw_layout(msp, finalize=True, layout_properties=layout_props)
+            # --- FIX 3: Clipping ---
+            # bbox_inches='tight' works better when the layout_properties are set
+            fig.savefig(target_png, dpi=dpi, bbox_inches='tight', pad_inches=0.1, facecolor=fig.get_facecolor())
             plt.close(fig)
-
         except Exception as e:
-            print(f"!! Failed to convert {dxf.name}: {e}")
+            print(f"!! Failed {dxf.name}: {e}")
             continue
-
-        if test_run:
-            break
+        if test_run: break
 
 if __name__ == "__main__":
     dxf_folder = './dwg_files/DXF_Converted'

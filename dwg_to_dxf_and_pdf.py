@@ -37,7 +37,7 @@ if __name__ == "__main__":
         args.to_pdf = True
         args.to_png = True
         args.inkscape = False
-        args.ezdxf = False
+        args.ezdxf = True
         args.aspose = True
         args.overwrite = False
         args.test_run = False
